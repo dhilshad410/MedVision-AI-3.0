@@ -1,240 +1,243 @@
-# MedVision AI 3.0
+🧠 MedVision AI 3.0
 
-**Brain MRI binary classification: TUMOR vs NO TUMOR**
+Binary Brain MRI Classification – TUMOR vs NO TUMOR
 
-MedVision AI 3.0 is a convolutional neural network (CNN) built with TensorFlow/Keras that looks at a brain MRI slice and predicts whether it shows a tumor or not. The project also ships with a Gradio web app, so anyone can upload an MRI image and see the model's prediction scores.
+"Python" (https://img.shields.io/badge/Python-3.10+-blue?logo=python)
+"TensorFlow" (https://img.shields.io/badge/TensorFlow-Deep%20Learning-orange?logo=tensorflow)
+"Gradio" (https://img.shields.io/badge/Gradio-UI-yellow?logo=gradio)
+"Status" (https://img.shields.io/badge/Project-Academic%20Project-success)
 
-> **Disclaimer:** This is an educational deep-learning project. It cannot diagnose or rule out a brain tumor. Real MRI scans must always be assessed by a qualified radiologist.
+📌 Project Overview
 
----
+MedVision AI 3.0 is a Deep Learning-based Brain MRI Classification project that uses a Convolutional Neural Network (CNN) to classify brain MRI images into two categories:
 
-## Table of contents
+- TUMOR – MRI images belonging to tumor categories.
+- NO TUMOR – MRI images without tumors.
 
-- [Overview](#overview)
-- [Results](#results)
-- [Dataset](#dataset)
-- [Model architecture](#model-architecture)
-- [Training setup](#training-setup)
-- [Project structure](#project-structure)
-- [Getting started](#getting-started)
-- [Using the web app](#using-the-web-app)
-- [Limitations](#limitations)
-- [Future work](#future-work)
-- [Author](#author)
+The project converts a four-class brain MRI dataset into a binary classification problem using TensorFlow and CNN.
 
----
+It also provides a modern Gradio web interface where users can upload MRI images and view model predictions.
 
-## Overview
+🎯 Project Objectives
 
-The original Brain Tumor MRI dataset has four classes: `glioma`, `meningioma`, `pituitary` and `notumor`. This project turns it into a two-class problem:
+- Develop a CNN-based brain MRI classification model.
+- Classify MRI images into Tumor and No Tumor.
+- Apply image preprocessing and data augmentation.
+- Improve training using class weights.
+- Evaluate model performance using classification metrics.
+- Build an interactive Gradio interface.
 
-| Original class | Binary label |
-|---|---|
-| glioma | 1 (TUMOR) |
-| meningioma | 1 (TUMOR) |
-| pituitary | 1 (TUMOR) |
-| notumor | 0 (NO TUMOR) |
+📂 Dataset
 
-Pipeline in one line: **load images, relabel to binary, rescale and augment, train CNN with class weights, evaluate on the held-out test set, serve with Gradio.**
+Dataset Name: Brain Tumor MRI Dataset
 
----
+Dataset Source: Kaggle
 
-## Results
+https://www.kaggle.com/datasets/masoudnickparvar/brain-tumor-mri-dataset
 
-Evaluated on the dataset's `Testing` folder (1,600 images), which is never used during training or validation.
+Original dataset contains four categories:
 
-| Metric | Value |
-|---|---|
-| Accuracy | 93.8% (1,500 of 1,600 correct) |
-| TUMOR precision | 99.6% |
-| TUMOR recall | 92.1% |
-| NO TUMOR recall | 98.8% |
-| False alarms (NO TUMOR predicted as TUMOR) | 5 |
-| Missed tumors (TUMOR predicted as NO TUMOR) | 95 |
+1. Glioma
+2. Meningioma
+3. No Tumor
+4. Pituitary
 
-### Confusion matrix
+These four categories are converted into two binary classes:
 
-![Confusion matrix](assets/confusion_matrix.png)
+Original Category| Binary Category
+Glioma| TUMOR
+Meningioma| TUMOR
+Pituitary| TUMOR
+No Tumor| NO TUMOR
 
-### Training curves
+🏗️ Project Structure
 
-![Training and validation accuracy and loss](assets/training_graph.png)
-
-Training and validation curves converge at roughly 0.97 to 0.98 accuracy, with no sign of heavy overfitting.
-
-**Key takeaway:** the model rarely raises false alarms, but it misses about 8% of tumor images. Improving TUMOR recall is the main goal for future versions.
-
----
-
-## Dataset
-
-- **Name:** Brain Tumor MRI Dataset (four-class version, with `Training` and `Testing` folders)
-- **Classes:** glioma, meningioma, notumor, pituitary
-- **Split used here:** 80% of `Training` for training, 20% of `Training` for validation, and the whole `Testing` folder for the final evaluation
-- **Image size:** resized to 180 x 180 RGB
-
-Expected folder layout:
-
-```
-Brain Tumor MRI Dataset/
+MedVision_AI_3.0/
+│
 ├── Training/
 │   ├── glioma/
 │   ├── meningioma/
 │   ├── notumor/
 │   └── pituitary/
-└── Testing/
-    ├── glioma/
-    ├── meningioma/
-    ├── notumor/
-    └── pituitary/
-```
-
-The dataset is **not** included in this repository. Download it yourself and point the script to it (see [Getting started](#getting-started)).
-
----
-
-## Model architecture
-
-A compact four-block CNN with a single sigmoid output.
-
-| Stage | Layers |
-|---|---|
-| Input | 180 x 180 x 3 |
-| Preprocessing | Rescaling (1/255) |
-| Augmentation | RandomRotation (0.04), RandomZoom (0.08), RandomContrast (0.08) |
-| Block 1 | Conv2D 32 (3x3, ReLU) + BatchNorm + MaxPool |
-| Block 2 | Conv2D 64 (3x3, ReLU) + BatchNorm + MaxPool |
-| Block 3 | Conv2D 128 (3x3, ReLU) + BatchNorm + MaxPool |
-| Block 4 | Conv2D 256 (3x3, ReLU) + BatchNorm + MaxPool |
-| Head | GlobalAveragePooling2D, Dense 128 (ReLU), Dropout 0.45 |
-| Output | Dense 1 (sigmoid): close to 0 = NO TUMOR, close to 1 = TUMOR |
-
----
-
-## Training setup
-
-| Setting | Value |
-|---|---|
-| Optimizer | Adam, learning rate 0.0001 |
-| Loss | Binary cross-entropy |
-| Max epochs | 20 |
-| Batch size | 32 |
-| Random seed | 42 |
-| Class balancing | Class weights = total images / (2 x images in that class) |
-| Callbacks | ModelCheckpoint (best `val_loss`), EarlyStopping (patience 5, restore best weights), ReduceLROnPlateau (factor 0.5, patience 2) |
-
----
-
-## Project structure
-
-```
-MedVision-AI-3.0/
-├── medvision_ai.py          # full pipeline: data, model, training, evaluation, Gradio app
-├── assets/
-│   ├── confusion_matrix.png
-│   └── training_graph.png
-├── MedVision_AI_3.0/        # created when you run the script
-│   ├── medvision_binary.keras   # best saved model
+│
+├── Testing/
+│   ├── glioma/
+│   ├── meningioma/
+│   ├── notumor/
+│   └── pituitary/
+│
+├── MedVision_AI_3.0/
+│   ├── medvision_binary.keras
 │   ├── class_names.json
 │   ├── training_graph.png
 │   └── confusion_matrix.png
-└── README.md
-```
+│
+├── README.md
+└── requirements.txt
 
----
+⚙️ Technologies Used
 
-## Getting started
+Technology| Purpose
+Python| Programming Language
+TensorFlow| Deep Learning
+Keras| CNN Model Development
+NumPy| Numerical Operations
+Matplotlib| Data Visualization
+Seaborn| Confusion Matrix
+Scikit-learn| Model Evaluation
+Pillow| Image Processing
+Gradio| Web Interface
 
-### 1. Clone the repository
+🧠 CNN Architecture
 
-```bash
-git clone https://github.com/<your-username>/MedVision-AI-3.0.git
+The project uses a custom Convolutional Neural Network.
+
+Model Architecture:
+
+1. Input Layer – 180 × 180 × 3
+2. Rescaling Layer
+3. Data Augmentation
+4. Convolutional Layer – 32 Filters
+5. Batch Normalization
+6. Max Pooling
+7. Convolutional Layer – 64 Filters
+8. Batch Normalization
+9. Max Pooling
+10. Convolutional Layer – 128 Filters
+11. Batch Normalization
+12. Max Pooling
+13. Convolutional Layer – 256 Filters
+14. Batch Normalization
+15. Max Pooling
+16. Global Average Pooling
+17. Dense Layer – 128 Neurons
+18. Dropout – 0.45
+19. Output Layer – Sigmoid Activation
+
+🔧 Model Configuration
+
+Parameter| Value
+Image Size| 180 × 180
+Batch Size| 32
+Epochs| 20
+Optimizer| Adam
+Learning Rate| 0.0001
+Loss Function| Binary Crossentropy
+Activation Function| ReLU, Sigmoid
+Output Classes| 2
+Random Seed| 42
+
+✨ Key Features
+
+- Binary Brain MRI Classification
+- Custom CNN Architecture
+- Automatic Dataset Folder Detection
+- Image Preprocessing
+- Data Augmentation
+- Class Weight Balancing
+- Training and Validation
+- Accuracy and Loss Graphs
+- Confusion Matrix
+- Classification Report
+- Interactive Gradio Interface
+- 50 Sample MRI Images
+
+📊 Model Evaluation
+
+The model is evaluated using:
+
+- Accuracy
+- Precision
+- Recall
+- F1-Score
+- Confusion Matrix
+
+Training graphs and confusion matrix are saved in the output directory.
+
+Actual performance values should be added after completing model training and testing.
+
+🚀 Installation and Setup
+
+1. Clone the Repository
+
+git clone https://github.com/YOUR-USERNAME/MedVision-AI-3.0.git
+
+2. Open Project Folder
+
 cd MedVision-AI-3.0
-```
 
-### 2. Create a virtual environment (recommended)
+3. Install Dependencies
 
-```bash
-python -m venv venv
-# Windows
-venv\Scripts\activate
-# macOS / Linux
-source venv/bin/activate
-```
+pip install tensorflow gradio scikit-learn matplotlib seaborn pillow numpy
 
-### 3. Install dependencies
+4. Download Dataset
 
-```bash
-pip install tensorflow numpy matplotlib seaborn scikit-learn gradio
-```
+Download the Brain Tumor MRI Dataset from Kaggle:
 
-### 4. Set the dataset path
+https://www.kaggle.com/datasets/masoudnickparvar/brain-tumor-mri-dataset
 
-Open `medvision_ai.py` and change this line to the folder where you saved the dataset:
+Extract the dataset and make sure the "Training" and "Testing" folders are available.
 
-```python
-DATASET_DIR = Path(r"C:\Users\YourName\Downloads\Brain Tumor MRI Dataset")
-```
+5. Run the Project
 
-### 5. Run
+Open the Python notebook in Google Colab or Jupyter Notebook and execute the cells after configuring the dataset path.
 
-```bash
-python medvision_ai.py
-```
+Important: Complete the model training step before running evaluation and Gradio prediction. The training code should define the "history" variable and save the trained model.
 
-The script will:
+🖥️ Gradio Interface
 
-1. Check that all dataset folders exist and print image counts
-2. Convert the four classes into two
-3. Train the CNN and save the best model to `MedVision_AI_3.0/medvision_binary.keras`
-4. Save the training graph and confusion matrix
-5. Print test accuracy and a classification report
-6. Launch the Gradio web app
+The project includes an interactive web interface.
 
----
+Users can:
 
-## Using the web app
+1. Upload a Brain MRI image.
+2. Click the Analyze MRI button.
+3. View the predicted category.
+4. Check the prediction score.
+5. Try sample MRI images.
 
-When training finishes, Gradio starts a local server and prints a link (usually `http://127.0.0.1:7860`).
+📸 Screenshots
 
-1. Open the link in your browser
-2. Upload a brain MRI image
-3. Click **Analyze MRI**
-4. Read the TUMOR and NO TUMOR scores and the result message
+Add your actual project screenshots here after running the application.
 
-The app resizes the image to 180 x 180, runs the saved model, and shows both probabilities. A tumor score of 0.5 or higher is reported as "TUMOR PREDICTED".
+![MedVision AI Interface](screenshots/interface.png)
 
----
+![Training Accuracy](screenshots/training_graph.png)
 
-## Limitations
+![Confusion Matrix](screenshots/confusion_matrix.png)
 
-- Trained and tested on a single public dataset, so results may not carry over to scans from other scanners or hospitals
-- Works on single 2D slices, not full 3D MRI volumes
-- Misses some tumors (recall 92.1%), so it must not be used to rule out a tumor
-- Binary output only: it does not say which tumor type is present
-- Educational project, not a medical device
+⚠️ Disclaimer
 
----
+MedVision AI 3.0 is an educational and academic Deep Learning project.
 
-## Future work
+It is not a clinically validated medical diagnostic system. Its predictions should not be used to make medical decisions. Actual MRI scans must be interpreted by qualified medical professionals.
 
-- Transfer learning with pretrained models (for example ResNet or EfficientNet)
-- Grad-CAM heatmaps to show which image regions drive each prediction
-- Threshold tuning to raise TUMOR recall
-- Validation on external MRI data
-- Return to the four-class problem (glioma, meningioma, pituitary, no tumor)
+🔮 Future Improvements
+
+- Improve classification performance.
+- Experiment with transfer learning models such as VGG16 and ResNet50.
+- Add explainable AI using Grad-CAM.
+- Improve the user interface.
+- Evaluate the model on independent MRI datasets.
+
+👨‍💻 Project Information
+
+Project Name: MedVision AI 3.0
+
+Project Domain: Deep Learning / Medical Image Classification
+
+Project Type: Academic Project
+
+Student: Muhammed Dhilshad
+
+Course: Data Science – B1
+
+Institution: TRYCOD Tech School, Perinthalmanna
+
+Guide/Mentor: Faizal
 
 ---
 
-## Author
+⭐ If you find this project interesting, consider giving this repository a star!
 
-**Muhammed Dhilshad P**
-Data Science, Batch B1, Trycod
-
-Guided by **Faizel** and **Fathima**.
-
----
-
-## License
-
-Add a license of your choice (for example MIT) before publishing. Remember that the dataset has its own license and terms, so check them before redistributing any images.
+Developed as part of a Data Science and Deep Learning academic project.
